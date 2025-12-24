@@ -1,4 +1,3 @@
-# app.py
 import math
 import re
 import os
@@ -739,7 +738,7 @@ def openai_chat(prompt: str, pool: List[Dict[str, Any]], history: List[Dict[str,
 
     sys = (
         "你是台灣在地餐廳/咖啡廳推薦顧問，回覆用繁體中文。"
-        "你只能依據候選清單做篩選/比較/推薦，不能編造不存在店家，而且回答一定要給店名。"
+        "你只能依據候選清單做篩選/比較/推薦，不能編造不存在店家。"
         "如果 compare_ids 非空，且使用者提到『比較』或『比較清單』，你必須以 compare_ids 內店家為主。"
         "輸出格式固定：\n"
         "A) 需求摘要（1-2行）\n"
@@ -1456,11 +1455,33 @@ def plan_trip(origin: Optional[Tuple[float, float]], lookup: Dict[str, Dict[str,
 
     st.dataframe(timeline_rows, use_container_width=True, hide_index=True)
 
+    # ✅ 行程地圖：用 Google Directions 的 polyline 畫「真實道路路線」，不是直線
     m = folium.Map(location=[origin[0], origin[1]], zoom_start=13, control_scale=True)
     folium.Marker([origin[0], origin[1]], tooltip="起點", icon=folium.Icon(color="darkblue", icon="user")).add_to(m)
+
     for i, p in enumerate(pts, 1):
-        folium.Marker([p["lat"], p["lng"]], tooltip=f"{i}. {p['name']}", icon=folium.Icon(color="red", icon="flag")).add_to(m)
-    folium.PolyLine([(origin[0], origin[1])] + [(p["lat"], p["lng"]) for p in pts], weight=5, opacity=0.75).add_to(m)
+        folium.Marker(
+            [p["lat"], p["lng"]],
+            tooltip=f"{i}. {p['name']}",
+            icon=folium.Icon(color="red", icon="flag"),
+        ).add_to(m)
+
+    # 每一段：origin -> pts[0] -> pts[1] ...
+    legs = []
+    prev_lat, prev_lng = origin[0], origin[1]
+    for p in pts:
+        legs.append(((prev_lat, prev_lng), (p["lat"], p["lng"])))
+        prev_lat, prev_lng = p["lat"], p["lng"]
+
+    for (a_lat, a_lng), (b_lat, b_lng) in legs:
+        info = directions(a_lat, a_lng, b_lat, b_lng, mode=travelmode)
+        poly = decode_polyline((info or {}).get("overview_polyline", "") or "")
+        if poly:
+            folium.PolyLine(poly, weight=6, opacity=0.85).add_to(m)
+        else:
+            # fallback：Directions 取不到時才畫直線（避免空白）
+            folium.PolyLine([(a_lat, a_lng), (b_lat, b_lng)], weight=4, opacity=0.6).add_to(m)
+
     st_folium(m, height=460)
 
 # ==============================
@@ -1875,7 +1896,7 @@ with tab3:
     if last_ai_answer:
         ai_pids = extract_place_ids_from_text(last_ai_answer)
         if ai_pids:
-            st.markdown("### ✅ AI 推薦清單")
+            st.markdown("### ✅ AI 推薦清單（可直接操作）")
             for pid in ai_pids:
                 d = place_details(pid) or {}
                 name = d.get("name") or pid
