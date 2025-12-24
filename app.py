@@ -1466,11 +1466,11 @@ def plan_trip(origin: Optional[Tuple[float, float]], lookup: Dict[str, Dict[str,
 # ==============================
 # App start
 # ==============================
-st.set_page_config(page_title="別當我｜商業可用版", layout="wide")
+st.set_page_config(page_title="別當我", layout="wide")
 inject_css()
 ss_init()
 
-st.markdown('<div class="h1">📍 別當我（商業可用版）</div>', unsafe_allow_html=True)
+st.markdown('<div class="h1">📍 別當我</div>', unsafe_allow_html=True)
 st.markdown('<div class="small-muted">輸入店名＝直接查；不輸入＝附近推薦。支援：口袋名單/比較/AI/導航/行程。</div>', unsafe_allow_html=True)
 
 with st.sidebar:
@@ -1875,7 +1875,7 @@ with tab3:
     if last_ai_answer:
         ai_pids = extract_place_ids_from_text(last_ai_answer)
         if ai_pids:
-            st.markdown("### ✅ AI 推薦清單（可直接操作）")
+            st.markdown("### ✅ AI 推薦清單")
             for pid in ai_pids:
                 d = place_details(pid) or {}
                 name = d.get("name") or pid
