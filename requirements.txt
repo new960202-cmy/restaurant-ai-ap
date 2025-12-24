@@ -1,0 +1,5 @@
+streamlit>=1.36,<2
+requests>=2.31,<3
+folium>=0.16,<0.19
+streamlit-folium>=0.20,<0.25
+openai>=1.40,<2
